@@ -1,0 +1,3 @@
+[submodule "SimpleMotionV2Library"]
+	path = SimpleMotionV2Library
+	url = https://github.com/GraniteDevices/SimpleMotionV2.git
