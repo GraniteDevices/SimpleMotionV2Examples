@@ -135,9 +135,6 @@ void MW::timerTick()
 
     feedDrives();
 
-    //update statuses
-    checkAndReportSMBusErrors();
-
     //make timer to trigger again after 20ms
     timer->start(20);//next fire after 20ms
 }
@@ -271,10 +268,13 @@ void MW::feedDrives()
             //reduce buffer free counter by the amount we just consumed in the fill
             freeSpace-=bytesFilled;
         }
+
+        //logging of some statistics/return values
         //writeLog(QString("%1 %2").arg(readData[0][0]).arg(readData[1][0]));
         //writeLog(QString::number(maxpoints)+ " read "+QString::number(readDataAmount)+" pend "+QString::number(axis[0].numberOfPendingReadPackets));
     }
 
+    //synchronize clocks of all devices to the current value of first axis
     smBufferedRunAndSyncClocks(&axis[0]);
 }
 
