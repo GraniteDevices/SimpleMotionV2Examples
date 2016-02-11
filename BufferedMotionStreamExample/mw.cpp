@@ -9,7 +9,7 @@ MW::MW(QWidget *parent) :
 {
     ui->setupUi(this);
     bushandle=-1;
-    motionAtive=busOpen=false;
+    motionActive=busOpen=false;
     streamTime=0;
 
     ui->numOfAxis->setMaximum(maxAxis);
@@ -19,6 +19,8 @@ MW::MW(QWidget *parent) :
     timer->setSingleShot(true);
     connect(timer,SIGNAL(timeout()),SLOT(timerTick()));
     timer->start(20);//first fire after 20ms
+
+    updateUIcontrols();
 }
 
 MW::~MW()
@@ -26,35 +28,58 @@ MW::~MW()
     delete ui;
 }
 
+//set buttons enabled/disabled depending on state
+void MW::updateUIcontrols()
+{
+    ui->connect->setEnabled(!busOpen);
+    ui->disconnect->setEnabled(busOpen);
+    ui->clearFaults->setEnabled(busOpen);
+    if(busOpen)
+    {
+        ui->abortMotion->setEnabled(motionActive);
+        ui->startMotion->setEnabled(!motionActive);
+    }
+    else
+    {
+        ui->abortMotion->setEnabled(false);
+        ui->startMotion->setEnabled(false);
+    }
+}
+
+
 void MW::on_connect_clicked()
 {
     bushandle=smOpenBus(ui->portName->text().toLatin1());
     if(bushandle<0)
     {
         writeLog("Unable to open port, check that it's not used by another application and port name is correct");
-        motionAtive=busOpen=false;
+        motionActive=busOpen=false;
     }
     else
     {
         writeLog("Port opened");
         busOpen=true;
-        motionAtive=false;
+        motionActive=false;
     }
+
+    updateUIcontrols();
 }
 
 void MW::on_disconnect_clicked()
 {
     smCloseBus(bushandle);
     bushandle=-1;
-    motionAtive=busOpen=false;
+    motionActive=busOpen=false;
     writeLog("Port closed");
+
+    updateUIcontrols();
 }
 
 void MW::on_startMotion_clicked()
 {
     ui->settingsGroup->setEnabled(false);//lock settings
 
-    motionAtive=false;
+    motionActive=false;
 
     int i;
     for(i=0;i<ui->numOfAxis->value();i++)
@@ -66,10 +91,13 @@ void MW::on_startMotion_clicked()
     if(checkAndReportSMBusErrors())//if error occurred
     {
         on_abortMotion_clicked();//abort it
+        updateUIcontrols();
         return;
     }
 
-    motionAtive=true;
+    motionActive=true;
+
+    updateUIcontrols();
 }
 
 void MW::on_abortMotion_clicked()
@@ -83,7 +111,9 @@ void MW::on_abortMotion_clicked()
     }
 
     ui->settingsGroup->setEnabled(true);//unlock settings
-    motionAtive=false;
+    motionActive=false;
+
+    updateUIcontrols();
 }
 
 void MW::on_clearFaults_clicked()
@@ -94,7 +124,6 @@ void MW::on_clearFaults_clicked()
         //setting faults register to 0 clears them if possible
         smSetParameter(bushandle,i+1,SMP_FAULTS,0);
     }
-
 }
 
 void MW::timerTick()
@@ -198,7 +227,7 @@ void MW::feedDrives()
     //limiting amount of points buffered reduces latency of the buffer. however lowering buffer lenght also reduces tolarence to fill gaps, so filling must be more real time.
     int minimumBufferFreeBytes=axis[0].bufferLength - ui->maxBufferFillPercent->value()/100.0*axis[0].bufferLength;
 
-    if(motionAtive==false)
+    if(motionActive==false)
         return;
 
     //get amount of free space in first axis buffer. we do this only for first axis because rest of axes should have equal
@@ -245,11 +274,7 @@ void MW::feedDrives()
         //writeLog(QString("%1 %2").arg(readData[0][0]).arg(readData[1][0]));
         //writeLog(QString::number(maxpoints)+ " read "+QString::number(readDataAmount)+" pend "+QString::number(axis[0].numberOfPendingReadPackets));
     }
-    static int tt=0;
 
-    /*if(!(tt&31))
-        smBufferedRunAndSyncClocks(&axis[0]);
-    tt++;
-bugi? jokatoisella kellolla lähtee slave pyörimään underrunnin jälkeen*/
+    smBufferedRunAndSyncClocks(&axis[0]);
 }
 

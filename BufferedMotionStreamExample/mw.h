@@ -43,7 +43,7 @@ private:
 
     double streamTime;
 
-    bool busOpen, motionAtive;
+    bool busOpen, motionActive;
 
     smbus bushandle;
     BufferedMotionAxis axis[maxAxis];
@@ -58,6 +58,9 @@ private:
 
     //call this as often as possible, preferrably in own thread in loop, but here for simplicity we call it from timer (may slow down GUI)
     void feedDrives();
+
+    //set buttons enabled/disabled depending on state
+    void updateUIcontrols();
 };
 
 #endif // MW_H
