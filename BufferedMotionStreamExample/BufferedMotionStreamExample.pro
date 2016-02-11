@@ -20,3 +20,5 @@ SOURCES += main.cpp\
 HEADERS  += mw.h
 
 FORMS    += mw.ui
+
+RC_FILE = ../icon/graniteicon.rc

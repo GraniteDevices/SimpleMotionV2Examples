@@ -23,3 +23,5 @@ HEADERS  += mw.h axis.h
 
 FORMS    += mw.ui
 
+RC_FILE = ../icon/graniteicon.rc
+
