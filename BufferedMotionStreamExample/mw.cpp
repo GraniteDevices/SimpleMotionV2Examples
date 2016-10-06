@@ -273,13 +273,12 @@ void MW::feedDrives()
             bytesFilled will indicate how many bytes were actually written to device buffer
             */
             smBufferedFillAndReceive(&axis[i],maxpoints,positions[i],&readDataAmount[i],readData[i],&bytesFilled);
-            //reduce buffer free counter by the amount we just consumed in the fill
+            
+            //Here we could do something with the read data. In this example we don't.
+            
+            //reduce buffer free counter by the amount we just consumed in the fill            
             freeSpace-=bytesFilled;
         }
-
-        //logging of some statistics/return values
-        //writeLog(QString("%1 %2").arg(readData[0][0]).arg(readData[1][0]));
-        //writeLog(QString::number(maxpoints)+ " read "+QString::number(readDataAmount)+" pend "+QString::number(axis[0].numberOfPendingReadPackets));
     }
 
     //synchronize clocks of all devices to the current value of first axis
