@@ -217,7 +217,7 @@ void MW::feedDrives()
 {
     smint32 positions[maxAxis][64];//64 is a safe value, max amount of samples that we ever need to send at one cycle is 60
     smint32 readData[maxAxis][64];
-    smint32 readDataAmount;
+    smint32 readDataAmount[maxAxis];
     int i,j;
     smint32 freeSpace;
 
@@ -264,7 +264,15 @@ void MW::feedDrives()
         for(i=0;i<ui->numOfAxis->value();i++)
         {
             smint32 bytesFilled;
-            smBufferedFillAndReceive(&axis[i],maxpoints,positions[i],&readDataAmount,readData[i],&bytesFilled);
+            
+            /*In the next call new setpoints are sent to a single drive and returned data points are stored in the
+            readData 2D table. Number of data points returned are stored in readDataAmount.
+
+            For more information of data flow in this function, see http://granitedevices.com/wiki/Buffered_motion_stream_in_SimpleMotion_V2
+            
+            bytesFilled will indicate how many bytes were actually written to device buffer
+            */
+            smBufferedFillAndReceive(&axis[i],maxpoints,positions[i],&readDataAmount[i],readData[i],&bytesFilled);
             //reduce buffer free counter by the amount we just consumed in the fill
             freeSpace-=bytesFilled;
         }
