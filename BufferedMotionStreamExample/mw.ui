@@ -85,16 +85,7 @@
           <enum>QFrame::Raised</enum>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
+          <property name="margin">
            <number>0</number>
           </property>
           <item>
@@ -256,6 +247,13 @@
           <widget class="QPushButton" name="clearFaults">
            <property name="text">
             <string>Clear faults</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="readFaults">
+           <property name="text">
+            <string>Read faults</string>
            </property>
           </widget>
          </item>

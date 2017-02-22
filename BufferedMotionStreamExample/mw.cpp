@@ -85,7 +85,14 @@ void MW::on_startMotion_clicked()
     for(i=0;i<ui->numOfAxis->value();i++)
     {
         //init axis. assume addresses be 1,2,3,...
-        smBufferedInit(&axis[i],bushandle,i+1,ui->samplerate->currentText().toInt(),SMP_ACTUAL_POSITION_FB, SM_RETURN_VALUE_16B);
+        smBufferedInit(&axis[i],bushandle,i+1,ui->samplerate->currentText().toInt(),SMP_DEBUGPARAM5, SM_RETURN_VALUE_16B);
+
+        if(logFiles.count()<=i)//open only if not yet opened
+        {
+            logFiles.append(new QFile(QString("C:/temp/SMBufferedLog_%1.txt").arg(i+1)));
+            logFiles[i]->open(QIODevice::WriteOnly | QIODevice::Text);
+            logStreams.append(new QTextStream(logFiles[i]));
+        }
     }
 
     if(checkAndReportSMBusErrors())//if error occurred
@@ -108,6 +115,12 @@ void MW::on_abortMotion_clicked()
         //init axis. assume addresses be 1,2,3,...
         smBufferedAbort(&axis[i]);
         smBufferedDeinit(&axis[i]);
+
+        logFiles[i]->close();
+        //delete(logFiles[i]);
+        //delete(logStreams[i]);
+        //logStreams.clear();
+        //logFiles.clear();
     }
 
     ui->settingsGroup->setEnabled(true);//unlock settings
@@ -161,6 +174,9 @@ QList <double> MW::getNextTrajectoryCoordinates()
         double ampl=ui->setpointAmpl->value();
         double freq=ui->setpointFreq->value();
         coords.append(sin(2*M_PI*freq*streamTime)*ampl);
+        //coords.append(sin(2*M_PI*freq*streamTime)*ampl*0.5+ampl);
+
+        //coords.append(ampl);
     }
 
     return coords;
@@ -219,7 +235,7 @@ void MW::feedDrives()
     smint32 readData[maxAxis][64];
     smint32 readDataAmount[maxAxis];
     int i,j;
-    smint32 freeSpace;
+    smint32 freeSpace[maxAxis];;
 
     //limiting amount of points buffered reduces latency of the buffer. however lowering buffer lenght also reduces tolarence to fill gaps, so filling must be more real time.
     int minimumBufferFreeBytes=axis[0].bufferLength - ui->maxBufferFillPercent->value()/100.0*axis[0].bufferLength;
@@ -229,10 +245,14 @@ void MW::feedDrives()
 
     //get amount of free space in first axis buffer. we do this only for first axis because rest of axes should have equal
     //or more free space. doing so saves unnecessary SM bus transmissions.
-    smBufferedGetFree(&axis[0],&freeSpace);
+    smBufferedGetFree(&axis[0],&freeSpace[0]);
+    /*for(i=0;i<ui->numOfAxis->value();i++)
+    {
+        smBufferedGetFree(&axis[i],&freeSpace[i]);
 
-    if(axis[0].bufferFill==0)
-        writeLog("Empty buffer detected (the first fill, or buffer underrun)");
+        if(axis[i].bufferFill==0)
+            writeLog(QString("Empty buffer detected on %1 (the first fill, or buffer underrun)").arg(i));
+    }*/
 
     //update buffer fill bar in UI
     ui->bufferFill->setValue(axis[0].bufferFill);
@@ -244,10 +264,10 @@ void MW::feedDrives()
         return;
     }
 
-    while(smBufferedGetMaxFillSize(&axis[0],freeSpace)>1  && freeSpace >= minimumBufferFreeBytes )
+    while(smBufferedGetMaxFillSize(&axis[0],freeSpace[0])>1  && freeSpace[0] >= minimumBufferFreeBytes )
     {
         //get info of how much points we are allowed to send to devices in one fill
-        int maxpoints=smBufferedGetMaxFillSize(&axis[0],freeSpace);
+        int maxpoints=smBufferedGetMaxFillSize(&axis[0],freeSpace[0]);
 
         //generate coordinate stream
         for(j=0;j<maxpoints;j++)
@@ -274,10 +294,22 @@ void MW::feedDrives()
             */
             smBufferedFillAndReceive(&axis[i],maxpoints,positions[i],&readDataAmount[i],readData[i],&bytesFilled);
             
-            //Here we could do something with the read data. In this example we don't.
+            //write feedback to log files
+            for(int a=0;a<readDataAmount[i];a++)
+            {
+                smuint32 d=readData[i][a];
+  //              int vset=char(d&0xff);
+//                int vfb=char((d&0xff00)>>8);
+                int vset=char(d<<1);
+                int vfb=char(char((d)>>7)<<1);
+                smuint8 tim=0;
+                //smuint8 tim=(d&0xff0000)>>16;
+                //(*logStreams[i])<<QString("%2\n").arg(readData[i][a]);
+                (*logStreams[i])<<QString("%1 %2 %3\n").arg(tim).arg(vset).arg(vfb);
+            }
             
             //reduce buffer free counter by the amount we just consumed in the fill            
-            freeSpace-=bytesFilled;
+            freeSpace[0]-=bytesFilled;
         }
     }
 
@@ -285,3 +317,14 @@ void MW::feedDrives()
     smBufferedRunAndSyncClocks(&axis[0]);
 }
 
+
+void MW::on_readFaults_clicked()
+{
+    int i;
+    for(i=0;i<ui->numOfAxis->value();i++)
+    {
+        smint32 faultbits,faultloc,debug1;
+        smRead3Parameters(bushandle,i+1,SMP_DEBUGPARAM6,&faultbits,SMP_DEBUGPARAM2,&faultloc,SMP_DEBUGPARAM1,&debug1);
+        writeLog(QString("Axis %1: faultbits %2, location %3, debug1 %4").arg(i).arg(faultbits,0,10).arg(faultloc).arg(debug1));
+    }
+}

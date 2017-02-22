@@ -4,7 +4,8 @@
 #include <QMainWindow>
 #include <QList>
 #include <QTimer>
-
+#include <QFile>
+#include <QTextStream>
 #include "simplemotion.h"
 #include "bufferedmotion.h"
 
@@ -32,6 +33,8 @@ private slots:
     void on_clearFaults_clicked();
 
     void timerTick();
+
+    void on_readFaults_clicked();
 
 private:
 
@@ -61,6 +64,9 @@ private:
 
     //set buttons enabled/disabled depending on state
     void updateUIcontrols();
+
+    QList <QFile*> logFiles;
+    QList <QTextStream*> logStreams;
 };
 
 #endif // MW_H
