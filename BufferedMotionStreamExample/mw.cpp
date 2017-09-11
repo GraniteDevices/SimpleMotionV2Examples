@@ -326,8 +326,10 @@ void MW::feedDrives()
     qDebug()<<fill[0]<<fill[1];
 
     //synchronize clocks of all devices to the current value of first axis
-    //smBufferedRunAndSyncClocks(&axis[0]);
-    smBufferedRunAndSyncClocks(&axis[2]);
+    smBufferedRunAndSyncClocks(&axis[0]);
+    /*static int x=0;//alternatin sync, seems to cause spikes, see img
+    x++;
+    smBufferedRunAndSyncClocks(&axis[x&1]);*/
 
     smint32 d1,d2,d3,d4,d5,d6;
     smRead3Parameters(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,&d1,SMP_DEBUGPARAM2,&d2,SMP_DEBUGPARAM3,&d3);
