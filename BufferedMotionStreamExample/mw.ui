@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>485</width>
-    <height>798</height>
+    <width>540</width>
+    <height>954</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <item>
      <widget class="QLabel" name="label_2">
       <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This an SimpleMotion V2 example app to buffered motion stream operation. Make sure that used drives are fully configured, enabled, running, and set into position control mode before using this app. Also disconnect from Granity before connecting here. &lt;/p&gt;&lt;p&gt;1. Drives must have sequental bus address starting from 1. I.e. 1, 2, 3 and 4.&lt;/p&gt;&lt;p&gt;2. Drives must be properly configured in position control mode&lt;/p&gt;&lt;p&gt;3. Drives must be enabled and running to make this app work&lt;/p&gt;&lt;p&gt;4. SMV2USB adapter must be configured to have 1 ms latency (in Windows, see device manager settings on the COM port device, in Linux no actions needed).&lt;/p&gt;&lt;p&gt;Caution: some unexpected jumps may happen with this version. Use only with freely spinning motors (no load).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       <string>This is a special version to test axis sync in back-forth motion.</string>
       </property>
       <property name="wordWrap">
        <bool>true</bool>
@@ -105,13 +105,13 @@
                <number>10</number>
               </property>
               <property name="maximum">
-               <number>100000</number>
+               <number>10000000</number>
               </property>
               <property name="singleStep">
-               <number>500</number>
+               <number>10000</number>
               </property>
               <property name="value">
-               <number>1000</number>
+               <number>100000</number>
               </property>
              </widget>
             </item>
@@ -130,12 +130,15 @@
               <property name="maximum">
                <number>16</number>
               </property>
+              <property name="value">
+               <number>2</number>
+              </property>
              </widget>
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="label_6">
               <property name="text">
-               <string>Sinusoidal setpoint frequency (Hz)</string>
+               <string>Sequence time (s)</string>
               </property>
              </widget>
             </item>
@@ -151,14 +154,14 @@
                <double>0.500000000000000</double>
               </property>
               <property name="value">
-               <double>0.500000000000000</double>
+               <double>10.000000000000000</double>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="label_4">
               <property name="text">
-               <string>Sinusoidal setpoint amplitude</string>
+               <string>Setpoint range</string>
               </property>
              </widget>
             </item>
@@ -171,6 +174,14 @@
             </item>
             <item row="3" column="1">
              <widget class="QComboBox" name="samplerate">
+              <property name="currentIndex">
+               <number>1</number>
+              </property>
+              <item>
+               <property name="text">
+                <string>100</string>
+               </property>
+              </item>
               <item>
                <property name="text">
                 <string>250</string>
@@ -227,7 +238,7 @@
             <double>10.000000000000000</double>
            </property>
            <property name="value">
-            <double>100.000000000000000</double>
+            <double>20.000000000000000</double>
            </property>
           </widget>
          </item>
@@ -277,6 +288,30 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QSpinBox" name="axis">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>5</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="P">
+         <property name="maximum">
+          <number>9999</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="I">
+         <property name="maximum">
+          <number>9999</number>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -287,7 +322,15 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
-        <widget class="QTextEdit" name="log"/>
+        <widget class="QTextEdit" name="log">
+         <property name="html">
+          <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'courier'; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

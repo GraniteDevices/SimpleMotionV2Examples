@@ -2,6 +2,8 @@
 #include "ui_mw.h"
 #include <QDateTime>
 #include <math.h>
+#include <QDebug>
+
 
 MW::MW(QWidget *parent) :
     QMainWindow(parent),
@@ -49,7 +51,9 @@ void MW::updateUIcontrols()
 
 void MW::on_connect_clicked()
 {
+    smSetBaudrate(460800);
     bushandle=smOpenBus(ui->portName->text().toLatin1());
+
     if(bushandle<0)
     {
         writeLog("Unable to open port, check that it's not used by another application and port name is correct");
@@ -60,6 +64,18 @@ void MW::on_connect_clicked()
         writeLog("Port opened");
         busOpen=true;
         motionActive=false;
+
+/*
+        smSetParameter(bushandle,0,SMP_BUS_SPEED,2000000);
+        smCloseBus(bushandle);
+        smSetBaudrate(2000000);
+        bushandle=smOpenBus(ui->portName->text().toLatin1());
+        if(bushandle<0)
+        {
+            writeLog("Unable to set speed, check that it's not used by another application and port name is correct");
+            motionActive=busOpen=false;
+        }*/
+
     }
 
     updateUIcontrols();
@@ -152,15 +168,38 @@ QList <double> MW::getNextTrajectoryCoordinates()
 
     //increment time
     streamTime+=1.0/ui->samplerate->currentText().toDouble();
+    //static double streamPos=0;
+
+    double period=ui->setpointFreq->value();
+    double mod=fmod(streamTime,period)/period;
+    double scale=1.0/0.3;
+
+    double streamPos=0;
+    if(mod>0.1&&mod<=0.4)
+        streamPos=(mod-0.1)*ui->setpointAmpl->value();
+    else if(mod>0.4&&mod<=0.6)
+        streamPos=0.3*ui->setpointAmpl->value();
+    else if(mod>0.6&&mod<=0.9)
+        streamPos=(0.9-mod)*ui->setpointAmpl->value();
+    else
+        streamPos=0;
+
+    streamPos*=scale;
+
+    //note: use low buffer fill to stop/continue at pauses properly
+    //ui->log->append(QString("%1\t %2\t %3").arg(streamTime).arg(mod).arg(streamPos));
 
     int i;
 
     //generate same sine setpoint for all axis
     for(i=0;i<maxAxis;i++)
     {
-        double ampl=ui->setpointAmpl->value();
-        double freq=ui->setpointFreq->value();
-        coords.append(sin(2*M_PI*freq*streamTime)*ampl);
+        //double ampl=ui->setpointAmpl->value();
+        //double freq=ui->setpointFreq->value();
+        //coords.append(sin(2*M_PI*freq*streamTime)*ampl);
+
+        //linear back-forth motion
+        coords.append(streamPos);
     }
 
     return coords;
@@ -244,6 +283,9 @@ void MW::feedDrives()
         return;
     }
 
+    int fill[maxAxis];
+    memset(fill,0,sizeof(int)*maxAxis);
+
     while(smBufferedGetMaxFillSize(&axis[0],freeSpace)>1  && freeSpace >= minimumBufferFreeBytes )
     {
         //get info of how much points we are allowed to send to devices in one fill
@@ -273,6 +315,7 @@ void MW::feedDrives()
             bytesFilled will indicate how many bytes were actually written to device buffer
             */
             smBufferedFillAndReceive(&axis[i],maxpoints,positions[i],&readDataAmount[i],readData[i],&bytesFilled);
+            fill[i]+=maxpoints;
             
             //Here we could do something with the read data. In this example we don't.
             
@@ -280,8 +323,18 @@ void MW::feedDrives()
             freeSpace-=bytesFilled;
         }
     }
+    qDebug()<<fill[0]<<fill[1];
 
     //synchronize clocks of all devices to the current value of first axis
-    smBufferedRunAndSyncClocks(&axis[0]);
+    //smBufferedRunAndSyncClocks(&axis[0]);
+    smBufferedRunAndSyncClocks(&axis[2]);
+
+    smint32 d1,d2,d3,d4,d5,d6;
+    smRead3Parameters(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,&d1,SMP_DEBUGPARAM2,&d2,SMP_DEBUGPARAM3,&d3);
+    smRead3Parameters(bushandle,ui->axis->value(),SMP_DEBUGPARAM4,&d4,SMP_DEBUGPARAM5,&d5,SMP_DEBUGPARAM6,&d6);
+    writeLog(QString("%1 %2 %3 %4 %5 %6").arg(d1,7).arg(d2,7).arg(d3,7).arg(d4,7).arg(d5,7).arg(d6,7));
+    smSetParameter(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,ui->P->value());
+    smSetParameter(bushandle,ui->axis->value(),SMP_DEBUGPARAM6,ui->I->value());
+
 }
 
