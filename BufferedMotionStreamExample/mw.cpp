@@ -157,7 +157,7 @@ void MW::timerTick()
 
 void MW::writeLog(QString msg)
 {
-    ui->log->append(QDateTime::currentDateTime().toString("hh:mm:ss")+ ": " +msg);
+    ui->log->appendPlainText(QDateTime::currentDateTime().toString("hh:mm:ss")+ ": " +msg);
 }
 
 
@@ -264,7 +264,10 @@ void MW::feedDrives()
     int minimumBufferFreeBytes=axis[0].bufferLength - ui->maxBufferFillPercent->value()/100.0*axis[0].bufferLength;
 
     if(motionActive==false)
+    {
+        //smBufferedRunAndSyncClocks(&axis[0]);
         return;
+    }
 
     //get amount of free space in first axis buffer. we do this only for first axis because rest of axes should have equal
     //or more free space. doing so saves unnecessary SM bus transmissions.
@@ -326,10 +329,19 @@ void MW::feedDrives()
     qDebug()<<fill[0]<<fill[1];
 
     //synchronize clocks of all devices to the current value of first axis
-    smBufferedRunAndSyncClocks(&axis[0]);
-    /*static int x=0;//alternatin sync, seems to cause spikes, see img
-    x++;
-    smBufferedRunAndSyncClocks(&axis[x&1]);*/
+    if(ui->sync->value()==-1)//rotate sync between all active drives
+    {
+        static int x=0;//alternatin sync, seems to cause spikes, see img
+        x++;
+        smBufferedRunAndSyncClocks(&axis[x%ui->numOfAxis->value()]);
+    }
+    else//user sel
+    {
+        int sync=ui->sync->value();
+        if(sync>=ui->numOfAxis->value())
+            sync=ui->numOfAxis->value()-1;
+        smBufferedRunAndSyncClocks(&axis[sync]);
+    }
 
     smint32 d1,d2,d3,d4,d5,d6;
     smRead3Parameters(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,&d1,SMP_DEBUGPARAM2,&d2,SMP_DEBUGPARAM3,&d3);
@@ -340,3 +352,8 @@ void MW::feedDrives()
 
 }
 
+
+void MW::on_zero_clicked()
+{
+    streamTime=0;
+}

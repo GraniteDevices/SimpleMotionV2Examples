@@ -33,6 +33,8 @@ private slots:
 
     void timerTick();
 
+    void on_zero_clicked();
+
 private:
 
     static const int maxAxis=16;
