@@ -102,6 +102,7 @@ void MW::on_startMotion_clicked()
     {
         //init axis. assume addresses be 1,2,3,...
         smBufferedInit(&axis[i],bushandle,i+1,ui->samplerate->currentText().toInt(),SMP_ACTUAL_POSITION_FB, SM_RETURN_VALUE_16B);
+    //    smSetParameter(axis[i].bushandle,i+1,16,1);//set linear interp mode
     }
 
     if(checkAndReportSMBusErrors())//if error occurred
@@ -347,8 +348,8 @@ void MW::feedDrives()
     smRead3Parameters(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,&d1,SMP_DEBUGPARAM2,&d2,SMP_DEBUGPARAM3,&d3);
     smRead3Parameters(bushandle,ui->axis->value(),SMP_DEBUGPARAM4,&d4,SMP_DEBUGPARAM5,&d5,SMP_DEBUGPARAM6,&d6);
     writeLog(QString("%1 %2 %3 %4 %5 %6").arg(d1,7).arg(d2,7).arg(d3,7).arg(d4,7).arg(d5,7).arg(d6,7));
-    smSetParameter(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,ui->P->value());
-    smSetParameter(bushandle,ui->axis->value(),SMP_DEBUGPARAM6,ui->I->value());
+  //  smSetParameter(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,ui->P->value());
+  //  smSetParameter(bushandle,ui->axis->value(),SMP_DEBUGPARAM6,ui->I->value());
 
 }
 
