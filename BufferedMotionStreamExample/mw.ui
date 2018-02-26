@@ -284,6 +284,13 @@
          </item>
         </layout>
        </item>
+       <item>
+        <widget class="QCheckBox" name="keepClockSyncAlive">
+         <property name="text">
+          <string>Keep clock sync alive when idle</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>

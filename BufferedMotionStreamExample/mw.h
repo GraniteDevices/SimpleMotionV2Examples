@@ -37,6 +37,7 @@ private slots:
 
 private:
 
+    void syncClocks();
     static const int maxAxis=16;
 
     Ui::MW *ui;

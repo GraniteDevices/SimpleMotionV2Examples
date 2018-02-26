@@ -252,6 +252,24 @@ bool MW::checkAndReportSMBusErrors(smint32 smDeviceErrors)
     return false;
 }
 
+void MW::syncClocks()
+{
+    //synchronize clocks of all devices to the current value of first axis
+    if(ui->sync->value()==-1)//rotate sync between all active drives
+    {
+        static int x=0;//alternatin sync, seems to cause spikes, see img
+        x++;
+        smBufferedRunAndSyncClocks(&axis[x%ui->numOfAxis->value()]);
+    }
+    else//user sel
+    {
+        int sync=ui->sync->value();
+        if(sync>=ui->numOfAxis->value())
+            sync=ui->numOfAxis->value()-1;
+        smBufferedRunAndSyncClocks(&axis[sync]);
+    }
+}
+
 //call this as often as possible, preferrably in own thread in loop, but here for simplicity we call it from timer (may slow down GUI)
 void MW::feedDrives()
 {
@@ -266,7 +284,8 @@ void MW::feedDrives()
 
     if(motionActive==false)
     {
-        //smBufferedRunAndSyncClocks(&axis[0]);
+        if(ui->keepClockSyncAlive->isChecked())
+            syncClocks();
         return;
     }
 
@@ -329,20 +348,7 @@ void MW::feedDrives()
     }
     qDebug()<<fill[0]<<fill[1];
 
-    //synchronize clocks of all devices to the current value of first axis
-    if(ui->sync->value()==-1)//rotate sync between all active drives
-    {
-        static int x=0;//alternatin sync, seems to cause spikes, see img
-        x++;
-        smBufferedRunAndSyncClocks(&axis[x%ui->numOfAxis->value()]);
-    }
-    else//user sel
-    {
-        int sync=ui->sync->value();
-        if(sync>=ui->numOfAxis->value())
-            sync=ui->numOfAxis->value()-1;
-        smBufferedRunAndSyncClocks(&axis[sync]);
-    }
+    syncClocks();
 
     smint32 d1,d2,d3,d4,d5,d6;
     smRead3Parameters(bushandle,ui->axis->value(),SMP_DEBUGPARAM1,&d1,SMP_DEBUGPARAM2,&d2,SMP_DEBUGPARAM3,&d3);
