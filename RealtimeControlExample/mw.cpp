@@ -75,7 +75,7 @@ void MW::on_stopInCurrentPosition_clicked()
 
 void MW::on_resetLocalTrackingError_clicked()
 {
-    commThread.clearDriveErrors();
+    commThread.clearTrackingError();
 }
 
 void MW::on_resetDriveFaults_clicked()
@@ -105,7 +105,7 @@ void MW::on_trackingErrorTolerance_valueChanged(int arg1)
 
 void MW::logMessage(QString text)
 {
-    ui->log->appendPlainText(text);
+    ui->log->append("<p>"+text+"</p>");
 }
 
 void MW::updateStatus(int posSetpoint, int posFeedback, int velSetpoint)

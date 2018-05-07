@@ -37,8 +37,10 @@ private:
     void DoSetParams();
     void DoResetDriveErrors();
 
+    QString stringifySMBusErrors(SM_STATUS smStat, smint32 smDeviceErrors);
+    bool checkAndReportSMBusErrors(bool fast=false);
 
-    enum class Task { None, ConnectAndStart, StopAndDisconnect, SetParams, ClearTrackingError, ClearDriveErrors, Quit };
+    enum class Task { None, ConnectAndStart, StopAndDisconnect, SetParams, ClearTrackingError, ClearDriveErrors, IncrementSetpoint, Quit };
     QMutex mutex, setpointLock;
     QList <Task> tasks;
     QWaitCondition waitCondition;
@@ -51,8 +53,13 @@ private:
     double proportionalGain;
     double maxVelocitySetpoint;
     int positionSetpoint;
+    int posSetpointIncrement;
+    int positionFeedback;
+    double feedbackDeviceResolution;
     bool trackingErrorFault;
     bool running;
+    bool clearDriveErrorsFlag;
+    bool prevDriveFaultStopState;
     smbus busHandle;
 };
 

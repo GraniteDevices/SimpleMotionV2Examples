@@ -432,7 +432,7 @@
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
-          <widget class="QPlainTextEdit" name="log"/>
+          <widget class="QTextEdit" name="log"/>
          </item>
         </layout>
        </widget>
