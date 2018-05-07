@@ -32,10 +32,11 @@ protected:
 
 private:
     void DoStopAndDisconnect();
-    void DoConnectAndStart();
-    void DoUpdateCycle();
+    void DoConnectAndStart();    
     void DoSetParams();
     void DoResetDriveErrors();
+    //this is the core function that does the actual control and uses smFastUpdateCycle to transmit setpoint & motor feedback and drive status/control bits:
+    void DoUpdateCycle();
 
     QString stringifySMBusErrors(SM_STATUS smStat, smint32 smDeviceErrors);
     bool checkAndReportSMBusErrors(bool fast=false);
@@ -60,6 +61,7 @@ private:
     bool running;
     bool clearDriveErrorsFlag;
     bool prevDriveFaultStopState;
+    bool prevServoRearyState;
     smbus busHandle;
 };
 

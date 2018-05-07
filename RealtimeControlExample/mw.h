@@ -37,8 +37,6 @@ private slots:
 
     void on_increment10000_clicked();
 
-    void on_stopInCurrentPosition_clicked();
-
     void on_resetLocalTrackingError_clicked();
 
     void on_resetDriveFaults_clicked();

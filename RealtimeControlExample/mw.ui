@@ -145,7 +145,7 @@
             <number>500</number>
            </property>
            <property name="value">
-            <number>2000</number>
+            <number>12000</number>
            </property>
           </widget>
          </item>
@@ -322,13 +322,6 @@
               </item>
              </layout>
             </item>
-            <item>
-             <widget class="QPushButton" name="stopInCurrentPosition">
-              <property name="text">
-               <string>Stop in current position</string>
-              </property>
-             </widget>
-            </item>
            </layout>
           </widget>
          </item>
@@ -444,6 +437,28 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>busName</tabstop>
+  <tabstop>deviceAddress</tabstop>
+  <tabstop>useHighBaudRate</tabstop>
+  <tabstop>connect</tabstop>
+  <tabstop>disconnect</tabstop>
+  <tabstop>updateRate</tabstop>
+  <tabstop>positionGain</tabstop>
+  <tabstop>maxSpeed</tabstop>
+  <tabstop>trackingErrorTolerance</tabstop>
+  <tabstop>decrement10000</tabstop>
+  <tabstop>decrement1000</tabstop>
+  <tabstop>decrement100</tabstop>
+  <tabstop>decrement10</tabstop>
+  <tabstop>increment10</tabstop>
+  <tabstop>increment100</tabstop>
+  <tabstop>increment1000</tabstop>
+  <tabstop>increment10000</tabstop>
+  <tabstop>resetLocalTrackingError</tabstop>
+  <tabstop>resetDriveFaults</tabstop>
+  <tabstop>log</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

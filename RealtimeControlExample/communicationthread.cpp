@@ -6,7 +6,7 @@ CommunicationThread::CommunicationThread(QObject *parent): QThread(parent)
     targetAddress=1;
     useHighBaudRate=false;
     updateFrequency=50;
-    trackingErrorLimit=2000;
+    trackingErrorLimit=12000;
     proportionalGain=10;
     positionSetpoint=0;
     maxVelocitySetpoint=50;
@@ -14,6 +14,7 @@ CommunicationThread::CommunicationThread(QObject *parent): QThread(parent)
     running=false;
     clearDriveErrorsFlag=false;
     prevDriveFaultStopState=false;
+    prevServoRearyState=false;
     busHandle=-1;
 }
 
@@ -156,6 +157,7 @@ void CommunicationThread::DoConnectAndStart()
 {
     if(running==false)
     {
+        smSetBaudrate(460800);//set SM default baudrate which is needed to reconnect after increased baudrate (so needed for consequent connect if "use high baudrate" option was set)
         busHandle=smOpenBus(portName.toLatin1());
         if(busHandle<0)
         {
@@ -166,8 +168,8 @@ void CommunicationThread::DoConnectAndStart()
         resetCumulativeStatus( busHandle );//reset possible SM errors
 
         //read some variables from device
-        smint32 controlMode, deviceType, actualPosition, driveStatus, capabilities1, FWversion, smProtocolVersion,encoderResolutionPPR;
-        smRead2Parameters(busHandle,targetAddress,SMP_SM_VERSION,&smProtocolVersion,SMP_DEVICE_TYPE,&deviceType);
+        smint32 controlMode, deviceType, actualPosition, driveStatus, capabilities1, FWversion, smProtocolVersion,encoderResolutionPPR, maxBPS;
+        smRead3Parameters(busHandle,targetAddress,SMP_SM_VERSION,&smProtocolVersion,SMP_DEVICE_TYPE,&deviceType, SMP_BUS_SPEED|SMP_MAX_VALUE_MASK, &maxBPS);
 
         //check if above reads failed in any way
         if(checkAndReportSMBusErrors())
@@ -214,7 +216,7 @@ void CommunicationThread::DoConnectAndStart()
         else if(controlMode==CM_VELOCITY) CM="Velocity";
         else if(controlMode==CM_TORQUE) CM="Torque";
 
-        emit logMessage(QString("Connected to device with type ID %1 with firmware version %4, which is in %2 control mode and has initial position feedback at %3 encoder counts, and encoder resolution is %5.").arg(deviceType).arg(CM).arg(actualPosition).arg(FWversion).arg(feedbackDeviceResolution));
+        emit logMessage(QString("Connected to device with type ID %1 with firmware version %4, which is in %2 control mode and has initial position feedback at %3 encoder counts, and encoder resolution is %5. Drive's max supported bus baud rate is %6 BPS.").arg(deviceType).arg(CM).arg(actualPosition).arg(FWversion).arg(feedbackDeviceResolution).arg(maxBPS));
 
         //check drive state & configuration:
         bool abort=false;
@@ -258,7 +260,43 @@ void CommunicationThread::DoConnectAndStart()
             return;
         }
 
-        //change bitrate TODO
+        smSetDebugOutput(High,stderr);
+        //change bitrate
+        if(useHighBaudRate)
+        {
+            //maxBPS=1000000; //uncomment to test with other than max baudrate
+
+            //first set device timeout (watchdog/fault behavior), so if connection is lost, they reset to default baud rate after a certain time period
+            //note: we change these settings of all bus devices simultaneously because errors will happen if not all devices have same BPS (address 0=broadcast to all)
+            const int deviceTimeoutMs=150;//max valid value 10230 ms. however, this should be set _less_ than timeout period of SM host (see SM_READ_TIMEOUT). timeout of SM host can be changed before smOpenBus if needed.
+            smSetParameter(busHandle,0,SMP_FAULT_BEHAVIOR,(deviceTimeoutMs/10)<<8);//set timeout
+            smSetParameter(busHandle,0,SMP_BUS_SPEED,maxBPS);//set baudrate
+
+            //if all went ok, now device is in new baud rate, switch host PBS too
+            smCloseBus(busHandle);
+            smSetBaudrate(maxBPS);
+            busHandle=smOpenBus(portName.toLatin1());
+            if(busHandle<0)
+            {
+                emit logMessage(QString("Opening SM bus failed with high baud rate (%1 BPS), perhaps bus device doesn't support high BPS").arg(maxBPS));
+                emit logMessage("Start aborted.");
+                return;
+            }
+
+            //test that new speed works
+            resetCumulativeStatus( busHandle );//reset possible SM errors
+            smint32 devType2;
+            smRead1Parameter(busHandle,targetAddress,SMP_DEVICE_TYPE,&devType2);//just reading some parameter to test
+
+            //check if above SM commands failed in any way
+            if(checkAndReportSMBusErrors() || devType2!=deviceType ) //we also compare that value is same than before but it's quite unnecessary as automatic CRC check will catch any data error that might happen
+            {
+                emit logMessage("Device didn't respond corrently at new baudrate, perhaps RS485 bus termination is missing and causing errors at high speed?");
+                smCloseBus(busHandle);
+                emit logMessage("Start aborted.");
+                return;
+            }
+        }
 
 
         //change smFastUpdateCycle data format
@@ -285,85 +323,12 @@ void CommunicationThread::DoStopAndDisconnect()
 {
     if(running)
     {
-        smuint16 read1, read2;
-
         //stop motion
         smSetParameter(busHandle,targetAddress,SMP_ABSOLUTE_SETPOINT,0);
         smCloseBus(busHandle);
         running=false;
         emit logMessage("Stopped");
     }
-}
-
-
-void CommunicationThread::DoUpdateCycle()
-{
-    int  velocitySetpoint;
-
-    /* this app uses fast update cycle format 1 (ALT1):
-    *
-    *  description: this type has 28 bits absolute setpoint and 30 bits absolute feedback value + 4 output bits for control + 2 input bits for status
-    *  write1=lowest 16 bits absolute setpoint value
-    *  write2=bits 0-11: upper 12 bits of absolute setpoint value, bits 12-15: these bits are written as bits 0-3 of SMP_CONTROL_BITS_1. See SMP_CB1_nn for functions. So write2 bit 15=bypass trajplanner 14=set quickstop 13=clear faults 12=enable.
-    *  read1=lowest 16 bits of position feedback value
-    *  read2=bit nr 16 = STAT_SERVO_READY, bit nr 15=STAT_FAULTSTOP, bits 0-14=upper bits of position feedback value (pos FB bits 17-30)
-    */
-
-    //calculate new velocity setpoint by using proportional error amplifier from position tracking error
-    int posTrackingError=positionSetpoint-positionFeedback;
-
-    if(abs(posTrackingError)>trackingErrorLimit )
-    {
-        if(trackingErrorFault==false)
-            emit logMessage(QString("Application entered in position tracking error state (position tracking error was %1). This means that velocity setpoint has been forced to 0. Try clearing faults to resume.").arg(posTrackingError));
-
-        trackingErrorFault=true;
-    }
-
-    if(trackingErrorFault)
-        velocitySetpoint=0;
-    else
-        velocitySetpoint=round(1000.0*(double)posTrackingError*proportionalGain/feedbackDeviceResolution);//note: we sacle output with inverse of feedbackDeviceResolution to have somewhat same gain sensitivity regardless of motor sensor
-
-    smuint32 writeLong=((smuint32)velocitySetpoint)&0x0fffffff;
-
-    if(clearDriveErrorsFlag)
-    {
-        writeLong|=0x20000000;//write clearfaults flag with fast command
-        clearDriveErrorsFlag=false;
-        emit logMessage("Drive errors cleared");
-    }
-
-    writeLong|=0x10000000;//write enable with fast command. without this, drive gets disabled
-    writeLong|=0x80000000;//write bypass trajectory planner with fast command
-
-    smuint16 write1=0,write2=0,read1,read2;
-
-    //split long into 16 bit short values
-    write1=writeLong&0xffff;
-    write2=writeLong>>16;
-
-    //send the fast update cycle to drive & check errors
-    if(smFastUpdateCycle(busHandle,targetAddress,write1,write2,&read1,&read2)!=SM_OK)
-    {
-        //report & handle error
-        checkAndReportSMBusErrors();
-        stopAndDisconnect();
-    }
-
-    //extract data from read
-    positionFeedback=int(read1 | (smuint32(read2&0x3fff)<<16));
-    positionFeedback=(positionFeedback<<2)>>2;//use bit shift trick to extend sign of pos feedback (2 missing MSB bits)
-    bool faultstop=read2&0x8000;
-
-    //drive just faulted, report it once
-    if(faultstop==true&&prevDriveFaultStopState==false)
-    {
-        emit logMessage("Drive entered in fault state. Try clear faults to resume.");
-    }
-    prevDriveFaultStopState=faultstop;
-
-    emit updateReadings(positionSetpoint,positionFeedback,velocitySetpoint);
 }
 
 void CommunicationThread::DoSetParams()
@@ -441,11 +406,11 @@ QString CommunicationThread::stringifySMBusErrors(SM_STATUS smStat, smint32 smDe
     {
             QString errorFlags, smErrorFlags;
             //these faults are from SM bus host side
-            if(smStat&SM_ERR_NODEVICE) errorFlags+="* NoDevice (check port name)<br>";
-            if(smStat&SM_ERR_PARAMETER) errorFlags+="* InvalidParameter (API)<br>";
-            if(smStat&SM_ERR_COMMUNICATION) errorFlags+="* Communication (cheksum mismatch)<br>";
-            if(smStat&SM_ERR_LENGTH) errorFlags+="* DataLegth (timeout or app error)<br>";
-            if(smStat&SM_ERR_BUS) errorFlags+="* BusError<br>";
+            if(smStat&SM_ERR_NODEVICE) errorFlags+="* NoDevice (bus is not opened)<br>";
+            if(smStat&SM_ERR_PARAMETER) errorFlags+="* InvalidParameter (invalid access to a target device parameter, i.e. read/write unsupported parameter address, or writing value that is not allowed to a parameter)<br>";
+            if(smStat&SM_ERR_COMMUNICATION) errorFlags+="* Communication (received data cheksum mismatch)<br>";
+            if(smStat&SM_ERR_LENGTH) errorFlags+="* DataLegth (not enough return data received from device)<br>";
+            if(smStat&SM_ERR_BUS) errorFlags+="* BusError (communication port device error)<br>";
 
             if(!(smStat&SM_ERR_NODEVICE))//ignore device side faults if nodevice is active because it would make no sense
             {
@@ -466,4 +431,83 @@ QString CommunicationThread::stringifySMBusErrors(SM_STATUS smStat, smint32 smDe
     }
 
     return errorString;
+}
+
+//this is the core function that does the actual control and uses smFastUpdateCycle to transmit setpoint & motor feedback and drive status/control bits
+void CommunicationThread::DoUpdateCycle()
+{
+    int  velocitySetpoint;
+
+    /* this app uses fast update cycle format 1 (ALT1):
+    *
+    *  description: this type has 28 bits absolute setpoint and 30 bits absolute feedback value + 4 output bits for control + 2 input bits for status
+    *  write1=lowest 16 bits absolute setpoint value
+    *  write2=bits 0-11: upper 12 bits of absolute setpoint value, bits 12-15: these bits are written as bits 0-3 of SMP_CONTROL_BITS_1. See SMP_CB1_nn for functions. So write2 bit 15=bypass trajplanner 14=set quickstop 13=clear faults 12=enable.
+    *  read1=lowest 16 bits of position feedback value
+    *  read2=bit nr 16 = STAT_SERVO_READY, bit nr 15=STAT_FAULTSTOP, bits 0-14=upper bits of position feedback value (pos FB bits 17-30)
+    */
+
+    //calculate new velocity setpoint by using proportional error amplifier from position tracking error
+    int posTrackingError=positionSetpoint-positionFeedback;
+
+    if(abs(posTrackingError)>trackingErrorLimit )
+    {
+        if(trackingErrorFault==false)
+            emit logMessage(QString("Application entered in position tracking error state (position tracking error was %1). This means that velocity setpoint has been forced to 0. Try clearing faults to resume.").arg(posTrackingError));
+
+        trackingErrorFault=true;
+    }
+
+    if(trackingErrorFault)
+        velocitySetpoint=0;
+    else
+        velocitySetpoint=round(1000.0*(double)posTrackingError*proportionalGain/feedbackDeviceResolution);//note: we sacle output with inverse of feedbackDeviceResolution to have somewhat same gain sensitivity regardless of motor sensor
+
+    smuint32 writeLong=((smuint32)velocitySetpoint)&0x0fffffff;
+
+    if(clearDriveErrorsFlag)
+    {
+        writeLong|=0x20000000;//write clearfaults flag with fast command
+        clearDriveErrorsFlag=false;
+        emit logMessage("Drive errors cleared");
+    }
+
+    writeLong|=0x10000000;//write enable with fast command. without this, drive gets disabled
+    writeLong|=0x80000000;//write bypass trajectory planner with fast command
+
+    smuint16 write1=0,write2=0,read1,read2;
+
+    //split long into 16 bit short values
+    write1=writeLong&0xffff;
+    write2=writeLong>>16;
+
+    //send the fast update cycle to drive & check errors
+    if(smFastUpdateCycle(busHandle,targetAddress,write1,write2,&read1,&read2)!=SM_OK)
+    {
+        //report & handle error
+        checkAndReportSMBusErrors();
+        stopAndDisconnect();
+    }
+
+    //extract data from read1 & read2
+    positionFeedback=int(read1 | (smuint32(read2&0x3fff)<<16));
+    positionFeedback=(positionFeedback<<2)>>2;//use bit shift trick to extend sign of pos feedback (fill the 2 missing MSB bits with sign of 30 bit value). this might not work with all compilers but at least with gcc it does.
+    bool faultstop=read2&0x4000;//get fault stop state of drive
+    bool servoready=read2&0x8000;//get servo ready state of drive
+
+    //drive just faulted, report it once
+    if(faultstop==true &&  prevDriveFaultStopState==false)
+    {
+        emit logMessage("Drive entered in fault state. Try clear faults to resume.");
+    }
+    prevDriveFaultStopState=faultstop;
+
+    //warn about servo ready==false but better handling of it is not implemented here
+    if(servoready==false && prevServoRearyState==true)
+    {
+        emit logMessage("Drive 'Ready for use' flag is became false (drive not enabled?). Control will not work until it's true.");
+    }
+    prevServoRearyState=servoready;
+
+    emit updateReadings(positionSetpoint,positionFeedback,velocitySetpoint);
 }

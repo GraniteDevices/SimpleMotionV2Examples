@@ -68,11 +68,6 @@ void MW::on_increment10000_clicked()
     commThread.incrementSetpoint(10000);
 }
 
-void MW::on_stopInCurrentPosition_clicked()
-{
-
-}
-
 void MW::on_resetLocalTrackingError_clicked()
 {
     commThread.clearTrackingError();
