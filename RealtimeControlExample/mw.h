@@ -45,13 +45,15 @@ private slots:
 
     void on_positionGain_valueChanged(double arg1);
 
-    void on_maxSpeed_valueChanged(int value);
-
     void on_trackingErrorTolerance_valueChanged(int arg1);
 
     void logMessage(QString text);
 
     void updateStatus(int posSetpoint, int posFeedback, int velSetpoint );
+
+    void handleErrorDetected(bool trackingError, bool driveFault);
+
+    void runningAndConnectedStateChanged(bool running);
 
 private:
     Ui::MW *ui;

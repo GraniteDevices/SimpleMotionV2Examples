@@ -9,7 +9,11 @@ MW::MW(QWidget *parent) :
     ui->setupUi(this);
     connect(&commThread,SIGNAL(logMessage(QString)),this,SLOT(logMessage(QString)));
     connect(&commThread,SIGNAL(updateReadings(int,int,int)),this,SLOT(updateStatus(int,int,int)));
+    connect(&commThread,SIGNAL(errorDetected(bool,bool)),this,SLOT(handleErrorDetected(bool,bool)));
+    connect(&commThread,SIGNAL(runningAndConnectedStateChanged(bool)),this,SLOT(runningAndConnectedStateChanged(bool)));
     commThread.start();
+    runningAndConnectedStateChanged(false);
+    logMessage("App version 1.0.0 ready");
 }
 
 MW::~MW()
@@ -71,11 +75,13 @@ void MW::on_increment10000_clicked()
 void MW::on_resetLocalTrackingError_clicked()
 {
     commThread.clearTrackingError();
+    ui->resetLocalTrackingError->setStyleSheet("");
 }
 
 void MW::on_resetDriveFaults_clicked()
 {
     commThread.clearDriveErrors();
+    ui->resetDriveFaults->setStyleSheet("");
 }
 
 void MW::on_updateRate_valueChanged(int arg1)
@@ -84,11 +90,6 @@ void MW::on_updateRate_valueChanged(int arg1)
 }
 
 void MW::on_positionGain_valueChanged(double arg1)
-{
-    applySettigns();
-}
-
-void MW::on_maxSpeed_valueChanged(int value)
 {
     applySettigns();
 }
@@ -110,7 +111,26 @@ void MW::updateStatus(int posSetpoint, int posFeedback, int velSetpoint)
     ui->measuredPosition->display(posFeedback);
 }
 
+void MW::handleErrorDetected(bool trackingError, bool driveFault)
+{
+    if(trackingError)
+        ui->resetLocalTrackingError->setStyleSheet("color: rgb(0, 0, 0);background-color: rgb(255, 170, 0);");
+    if(driveFault)
+        ui->resetDriveFaults->setStyleSheet("color: rgb(0, 0, 0);background-color: rgb(255, 170, 0);");
+}
+
+void MW::runningAndConnectedStateChanged(bool running)
+{
+    //update UI controls enabled/disabled state depending on connection status
+    ui->connect->setEnabled(!running);
+    ui->disconnect->setEnabled(running);
+    ui->busName->setEnabled(!running);
+    ui->deviceAddress->setEnabled(!running);
+    ui->useHighBaudRate->setEnabled(!running);
+    ui->controlsGroup->setEnabled(running);
+}
+
 void MW::applySettigns()
 {
-    commThread.setParameters(ui->updateRate->value(),ui->trackingErrorTolerance->value(),ui->positionGain->value(),ui->maxSpeed->value());
+    commThread.setParameters(ui->updateRate->value(),ui->trackingErrorTolerance->value(),ui->positionGain->value());
 }

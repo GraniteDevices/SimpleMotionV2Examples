@@ -6,27 +6,17 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1072</width>
-    <height>759</height>
+    <width>1214</width>
+    <height>686</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>SimpleMotion Real-time control example</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QHBoxLayout" name="horizontalLayout_2">
+   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,10">
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_4">
-      <item>
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:large; font-weight:600;&quot;&gt;About this app&lt;/span&gt;&lt;/p&gt;&lt;p&gt;This program implements simple host side position controller over SimpleMotion bus . The program reads actual encoder position from the drive, compares it to user position setpoint, and controls drive's velocity setpoint based on the difference of the encoder vs user setpoint.&lt;/p&gt;&lt;p&gt;The app utilizes smFastUpdateCycle API call to lowest latency and enables highest possible control update rate over SimpleMotion. However, as this program is run on a non-real time OS, it might exhibit some inperfections in response due to control task time jitter. For best results, similar app could be make on a hard real-time system (i.e. RTOS or embedded system).&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:large; font-weight:600;&quot;&gt;Prerequisities&lt;/span&gt;&lt;/p&gt;&lt;p&gt;The app assumes that drive hsa been properly configured and drive is enabled and operating in velocity control mode.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
       <item>
        <widget class="QGroupBox" name="groupBox">
         <property name="title">
@@ -42,6 +32,9 @@
          </item>
          <item row="0" column="1">
           <widget class="QLineEdit" name="busName">
+           <property name="text">
+            <string>FTDI0</string>
+           </property>
            <property name="maxLength">
             <number>32</number>
            </property>
@@ -130,7 +123,7 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="1">
+         <item row="2" column="1">
           <widget class="QSpinBox" name="trackingErrorTolerance">
            <property name="suffix">
             <string> encoder counts</string>
@@ -159,30 +152,10 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="0">
+         <item row="2" column="0">
           <widget class="QLabel" name="label_5">
            <property name="text">
             <string>Position tracking error tolerance</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="label_8">
-           <property name="text">
-            <string>Maximum velocity setpoint (%)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QSlider" name="maxSpeed">
-           <property name="maximum">
-            <number>100</number>
-           </property>
-           <property name="sliderPosition">
-            <number>50</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
            </property>
           </widget>
          </item>
@@ -190,7 +163,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QGroupBox" name="groupBox_4">
+       <widget class="QGroupBox" name="controlsGroup">
         <property name="title">
          <string>Run-time controls</string>
         </property>
@@ -327,6 +300,9 @@
          </item>
          <item row="2" column="0">
           <widget class="QPushButton" name="resetLocalTrackingError">
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
            <property name="text">
             <string>Reset local position tracking error</string>
            </property>
@@ -335,23 +311,6 @@
         </layout>
        </widget>
       </item>
-      <item>
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <widget class="QGroupBox" name="groupBox_6">
         <property name="sizePolicy">
@@ -419,13 +378,51 @@
        </widget>
       </item>
       <item>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
        <widget class="QGroupBox" name="groupBox_3">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="title">
-         <string>Log</string>
+         <string>Info &amp;&amp; Log</string>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
-          <widget class="QTextEdit" name="log"/>
+          <widget class="QTextEdit" name="log">
+           <property name="html">
+            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.15094pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;About this app&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;This program implements simple host side position controller over SimpleMotion bus . The program reads actual encoder position from the drive, compares it to user position setpoint, and controls drive's velocity setpoint based on the difference of the encoder vs user setpoint.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;The app utilizes smFastUpdateCycle API call to lowest latency and enables highest possible control update rate over SimpleMotion. However, as this program is run on a non-real time OS, it might exhibit some inperfections in response due to control task time jitter. For best results, similar app could be make on a hard real-time system (i.e. RTOS or embedded system).&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;Diagram&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;img src=&quot;:/real time example system diagram.png&quot; /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;Prerequisities&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;The app assumes that drive hsa been properly configured and drive is enabled and operating in velocity control mode.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;Log:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -445,7 +442,6 @@
   <tabstop>disconnect</tabstop>
   <tabstop>updateRate</tabstop>
   <tabstop>positionGain</tabstop>
-  <tabstop>maxSpeed</tabstop>
   <tabstop>trackingErrorTolerance</tabstop>
   <tabstop>decrement10000</tabstop>
   <tabstop>decrement1000</tabstop>

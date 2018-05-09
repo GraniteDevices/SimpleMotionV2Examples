@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>real time example system diagram.png</file>
+    </qresource>
+</RCC>

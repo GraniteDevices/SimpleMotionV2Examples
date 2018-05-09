@@ -9,7 +9,6 @@ CommunicationThread::CommunicationThread(QObject *parent): QThread(parent)
     trackingErrorLimit=12000;
     proportionalGain=10;
     positionSetpoint=0;
-    maxVelocitySetpoint=50;
     trackingErrorFault=false;
     running=false;
     clearDriveErrorsFlag=false;
@@ -20,15 +19,15 @@ CommunicationThread::CommunicationThread(QObject *parent): QThread(parent)
 
 CommunicationThread::~CommunicationThread()
 {
-    qDebug()<<"destroy comm";
+    qDebug()<<"comm thread deconstructor called";
     mutex.lock();
     tasks.append(Task::Quit);
-    waitCondition.wakeOne();
     mutex.unlock();
+
     if(wait(5000)==false)
     {
-        //called when app quits but thread wont close (never should happen)
-        qDebug()<<"terminating thread";
+        //called when app quits but thread wont stop gently within 5000 ms wait (never should happen)
+        qDebug()<<"force terminating thread";
         setTerminationEnabled();
         terminate();
     }
@@ -56,14 +55,13 @@ void CommunicationThread::stopAndDisconnect()
     tasks.append(Task::StopAndDisconnect);
 }
 
-void CommunicationThread::setParameters(int updateFrequency, int trackingErrorLimit, double proportionalGain, double maxVelocitySetpoint)
+void CommunicationThread::setParameters(int updateFrequency, int trackingErrorLimit, double proportionalGain)
 {
     QMutexLocker locker(&mutex);//this locks mutex and fres it automatically when we leave this function
 
     this->updateFrequency=updateFrequency;
     this->trackingErrorLimit=trackingErrorLimit;
     this->proportionalGain=proportionalGain;
-    this->maxVelocitySetpoint=maxVelocitySetpoint;
 
     tasks.append(Task::SetParams);
 }
@@ -157,6 +155,10 @@ void CommunicationThread::DoConnectAndStart()
 {
     if(running==false)
     {
+        //enable low amount of debug output to report SM bus errors to stderr
+        smSetDebugOutput(SMDebugMid,stderr);
+
+        smSetTimeout(1000);
         smSetBaudrate(460800);//set SM default baudrate which is needed to reconnect after increased baudrate (so needed for consequent connect if "use high baudrate" option was set)
         busHandle=smOpenBus(portName.toLatin1());
         if(busHandle<0)
@@ -260,21 +262,31 @@ void CommunicationThread::DoConnectAndStart()
             return;
         }
 
-        smSetDebugOutput(High,stderr);
         //change bitrate
         if(useHighBaudRate)
         {
-            //maxBPS=1000000; //uncomment to test with other than max baudrate
+            int setBPS;
+
+            if(maxBPS>3000000)
+                setBPS=3000000;//limit BPS to 3M because the FTDI USB UART chip has that as maximum supported bitrate.
+            else
+                setBPS=maxBPS;
+
+            emit logMessage(QString("Setting baudrate to %1 BPS.").arg(setBPS));
+
+            /*max deviceTimeoutMs valid value 10230 ms. however, this should be set _less_ than timeout period of SM host
+             * the value that we set earlier here with smSetTimeout) so if device host timeouts,
+             *it will cause certain timeout on device and reset baudrate to default for successfull reinitialization*/
+            const int deviceTimeoutMs=500;
 
             //first set device timeout (watchdog/fault behavior), so if connection is lost, they reset to default baud rate after a certain time period
             //note: we change these settings of all bus devices simultaneously because errors will happen if not all devices have same BPS (address 0=broadcast to all)
-            const int deviceTimeoutMs=150;//max valid value 10230 ms. however, this should be set _less_ than timeout period of SM host (see SM_READ_TIMEOUT). timeout of SM host can be changed before smOpenBus if needed.
             smSetParameter(busHandle,0,SMP_FAULT_BEHAVIOR,(deviceTimeoutMs/10)<<8);//set timeout
-            smSetParameter(busHandle,0,SMP_BUS_SPEED,maxBPS);//set baudrate
+            smSetParameter(busHandle,0,SMP_BUS_SPEED,setBPS);//set baudrate
 
             //if all went ok, now device is in new baud rate, switch host PBS too
             smCloseBus(busHandle);
-            smSetBaudrate(maxBPS);
+            smSetBaudrate(setBPS);
             busHandle=smOpenBus(portName.toLatin1());
             if(busHandle<0)
             {
@@ -316,6 +328,7 @@ void CommunicationThread::DoConnectAndStart()
         emit logMessage("Drive compatibility checked & passed. Control started.");
     }
 
+    emit runningAndConnectedStateChanged(true);
     running=true;
 }
 
@@ -328,6 +341,7 @@ void CommunicationThread::DoStopAndDisconnect()
         smCloseBus(busHandle);
         running=false;
         emit logMessage("Stopped");
+        emit runningAndConnectedStateChanged(false);
     }
 }
 
@@ -453,9 +467,12 @@ void CommunicationThread::DoUpdateCycle()
     if(abs(posTrackingError)>trackingErrorLimit )
     {
         if(trackingErrorFault==false)
+        {
             emit logMessage(QString("Application entered in position tracking error state (position tracking error was %1). This means that velocity setpoint has been forced to 0. Try clearing faults to resume.").arg(posTrackingError));
+        }
 
         trackingErrorFault=true;
+        emit errorDetected(true,false);
     }
 
     if(trackingErrorFault)
@@ -484,9 +501,14 @@ void CommunicationThread::DoUpdateCycle()
     //send the fast update cycle to drive & check errors
     if(smFastUpdateCycle(busHandle,targetAddress,write1,write2,&read1,&read2)!=SM_OK)
     {
+        //for clearer debug:
+        //smCloseBus(busHandle);
+        //running=false;
+
         //report & handle error
         checkAndReportSMBusErrors();
         stopAndDisconnect();
+        emit logMessage("Aborted due to connection error.");
     }
 
     //extract data from read1 & read2
@@ -501,6 +523,8 @@ void CommunicationThread::DoUpdateCycle()
         emit logMessage("Drive entered in fault state. Try clear faults to resume.");
     }
     prevDriveFaultStopState=faultstop;
+
+    emit errorDetected(false,faultstop);
 
     //warn about servo ready==false but better handling of it is not implemented here
     if(servoready==false && prevServoRearyState==true)

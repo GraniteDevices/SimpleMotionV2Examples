@@ -17,7 +17,7 @@ public:
     void setPortDetails(QString portname, int targetAddress, bool useHighBaudRate );
     void connectAndStart();
     void stopAndDisconnect();
-    void setParameters(int updateFrequency, int trackingErrorLimit, double proportionalGain, double maxVelocitySetpoint );
+    void setParameters(int updateFrequency, int trackingErrorLimit, double proportionalGain );
     void clearTrackingError();
     void clearDriveErrors();
     void incrementSetpoint(int change);
@@ -26,6 +26,8 @@ public:
 signals:
     void logMessage(QString text);
     void updateReadings(int setpoint, int feedbackpos, int velocitysetpoint);
+    void errorDetected(bool trackingError, bool driveFault);
+    void runningAndConnectedStateChanged(bool running);
 
 protected:
     void run();
@@ -52,7 +54,6 @@ private:
     int updateFrequency;
     int trackingErrorLimit;
     double proportionalGain;
-    double maxVelocitySetpoint;
     int positionSetpoint;
     int posSetpointIncrement;
     int positionFeedback;
