@@ -156,7 +156,7 @@ void CommunicationThread::DoConnectAndStart()
     if(running==false)
     {
         //enable low amount of debug output to report SM bus errors to stderr
-        smSetDebugOutput(SMDebugMid,stderr);
+        smSetDebugOutput(SMDebugTrace,stderr);
 
         smSetTimeout(1000);
         smSetBaudrate(460800);//set SM default baudrate which is needed to reconnect after increased baudrate (so needed for consequent connect if "use high baudrate" option was set)
@@ -451,14 +451,12 @@ QString CommunicationThread::stringifySMBusErrors(SM_STATUS smStat, smint32 smDe
 void CommunicationThread::DoUpdateCycle()
 {
     int  velocitySetpoint;
+    //UnionOf4Bytes cc;
+    FastUpdateCycleReadData readData;
+    FastUpdateCycleWriteData writeData;
 
     /* this app uses fast update cycle format 1 (ALT1):
-    *
     *  description: this type has 28 bits absolute setpoint and 30 bits absolute feedback value + 4 output bits for control + 2 input bits for status
-    *  write1=lowest 16 bits absolute setpoint value
-    *  write2=bits 0-11: upper 12 bits of absolute setpoint value, bits 12-15: these bits are written as bits 0-3 of SMP_CONTROL_BITS_1. See SMP_CB1_nn for functions. So write2 bit 15=bypass trajplanner 14=set quickstop 13=clear faults 12=enable.
-    *  read1=lowest 16 bits of position feedback value
-    *  read2=bit nr 16 = STAT_SERVO_READY, bit nr 15=STAT_FAULTSTOP, bits 0-14=upper bits of position feedback value (pos FB bits 17-30)
     */
 
     //calculate new velocity setpoint by using proportional error amplifier from position tracking error
@@ -480,26 +478,22 @@ void CommunicationThread::DoUpdateCycle()
     else
         velocitySetpoint=round(1000.0*(double)posTrackingError*proportionalGain/feedbackDeviceResolution);//note: we sacle output with inverse of feedbackDeviceResolution to have somewhat same gain sensitivity regardless of motor sensor
 
-    smuint32 writeLong=((smuint32)velocitySetpoint)&0x0fffffff;
-
     if(clearDriveErrorsFlag)
     {
-        writeLong|=0x20000000;//write clearfaults flag with fast command
+        writeData.ALT1_Write.CB1_ClearFaults=1;//write clearfaults flag with fast command
         clearDriveErrorsFlag=false;
         emit logMessage("Drive errors cleared");
     }
+    else
+        writeData.ALT1_Write.CB1_ClearFaults=0;
 
-    writeLong|=0x10000000;//write enable with fast command. without this, drive gets disabled
-    writeLong|=0x80000000;//write bypass trajectory planner with fast command
-
-    smuint16 write1=0,write2=0,read1,read2;
-
-    //split long into 16 bit short values
-    write1=writeLong&0xffff;
-    write2=writeLong>>16;
+    writeData.ALT1_Write.CB1_Enable=1;//write enable with fast command. without this, drive gets disabled
+    writeData.ALT1_Write.CB1_BypassTrajPlanner=1;//write bypass trajectory planner with fast command
+    writeData.ALT1_Write.CB1_QuickStopSet=0;//do not activate quick stop
+    writeData.ALT1_Write.Setpoint=velocitySetpoint;//write setpoint
 
     //send the fast update cycle to drive & check errors
-    if(smFastUpdateCycle(busHandle,targetAddress,write1,write2,&read1,&read2)!=SM_OK)
+    if(smFastUpdateCycleWithStructs(busHandle,targetAddress,writeData, &readData)!=SM_OK)
     {
         //for clearer debug:
         //smCloseBus(busHandle);
@@ -511,11 +505,10 @@ void CommunicationThread::DoUpdateCycle()
         emit logMessage("Aborted due to connection error.");
     }
 
-    //extract data from read1 & read2
-    positionFeedback=int(read1 | (smuint32(read2&0x3fff)<<16));
-    positionFeedback=(positionFeedback<<2)>>2;//use bit shift trick to extend sign of pos feedback (fill the 2 missing MSB bits with sign of 30 bit value). this might not work with all compilers but at least with gcc it does.
-    bool faultstop=read2&0x4000;//get fault stop state of drive
-    bool servoready=read2&0x8000;//get servo ready state of drive
+    //extract data from fastUpdateCycle command
+    positionFeedback=readData.ALT1_ALT2_Read.PositionFeedback;
+    bool faultstop=readData.ALT1_ALT2_Read.Stat_FaultStop;//get fault stop state of drive
+    bool servoready=readData.ALT1_ALT2_Read.Stat_ServoReady;//get servo ready state of drive
 
     //drive just faulted, report it once
     if(faultstop==true &&  prevDriveFaultStopState==false)
