@@ -450,10 +450,9 @@ QString CommunicationThread::stringifySMBusErrors(SM_STATUS smStat, smint32 smDe
 //this is the core function that does the actual control and uses smFastUpdateCycle to transmit setpoint & motor feedback and drive status/control bits
 void CommunicationThread::DoUpdateCycle()
 {
-    int  velocitySetpoint;
-    //UnionOf4Bytes cc;
     FastUpdateCycleReadData readData;
     FastUpdateCycleWriteData writeData;
+    int  velocitySetpoint;
 
     /* this app uses fast update cycle format 1 (ALT1):
     *  description: this type has 28 bits absolute setpoint and 30 bits absolute feedback value + 4 output bits for control + 2 input bits for status
