@@ -156,7 +156,7 @@ void CommunicationThread::DoConnectAndStart()
     if(running==false)
     {
         //enable low amount of debug output to report SM bus errors to stderr
-        smSetDebugOutput(SMDebugTrace,stderr);
+        smSetDebugOutput(SMDebugMid,stderr);
 
         smSetTimeout(1000);
         smSetBaudrate(460800);//set SM default baudrate which is needed to reconnect after increased baudrate (so needed for consequent connect if "use high baudrate" option was set)
