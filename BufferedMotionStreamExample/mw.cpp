@@ -78,10 +78,20 @@ void MW::on_disconnect_clicked()
 void MW::on_startMotion_clicked()
 {
     ui->settingsGroup->setEnabled(false);//lock settings
-
+int i;
     motionActive=false;
 
+    offsets[0]=ui->initX->value();
+    offsets[1]=ui->initY->value();
+    offsets[2]=ui->initZ->value();
+    offsets[3]=ui->initA->value();
+    if(ui->reset->isChecked()){
+    streamTime=0;
+
     int i;
+    for(i=0;i<ui->numOfAxis->value();i++)
+        smSetParameter(bushandle,i+1,SMP_ABSOLUTE_POS_TARGET,offsets[i]);}
+
     for(i=0;i<ui->numOfAxis->value();i++)
     {
         //init axis. assume addresses be 1,2,3,...
@@ -106,8 +116,8 @@ void MW::on_abortMotion_clicked()
     for(i=0;i<ui->numOfAxis->value();i++)
     {
         //init axis. assume addresses be 1,2,3,...
-        smBufferedAbort(&axis[i]);
-        smBufferedDeinit(&axis[i]);
+    //    smBufferedAbort(&axis[i]);
+   //     smBufferedDeinit(&axis[i]);
     }
 
     ui->settingsGroup->setEnabled(true);//unlock settings
@@ -256,7 +266,7 @@ void MW::feedDrives()
 
             for(i=0;i<ui->numOfAxis->value();i++)
             {
-                positions[i][j]=smint32(coords[i]);
+                positions[i][j]=smint32(coords[i])+offsets[i];
             }
         }
 

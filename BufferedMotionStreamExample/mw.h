@@ -61,6 +61,7 @@ private:
 
     //set buttons enabled/disabled depending on state
     void updateUIcontrols();
+    int offsets[10];
 };
 
 #endif // MW_H

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>485</width>
-    <height>798</height>
+    <height>866</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,16 +15,6 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_3">
-    <item>
-     <widget class="QLabel" name="label_2">
-      <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This an SimpleMotion V2 example app to buffered motion stream operation. Make sure that used drives are fully configured, enabled, running, and set into position control mode before using this app. Also disconnect from Granity before connecting here. &lt;/p&gt;&lt;p&gt;1. Drives must have sequental bus address starting from 1. I.e. 1, 2, 3 and 4.&lt;/p&gt;&lt;p&gt;2. Drives must be properly configured in position control mode&lt;/p&gt;&lt;p&gt;3. Drives must be enabled and running to make this app work&lt;/p&gt;&lt;p&gt;4. SMV2USB adapter must be configured to have 1 ms latency (in Windows, see device manager settings on the COM port device, in Linux no actions needed).&lt;/p&gt;&lt;p&gt;Caution: some unexpected jumps may happen with this version. Use only with freely spinning motors (no load).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
     <item>
      <widget class="QGroupBox" name="groupBox">
       <property name="title">
@@ -260,6 +250,62 @@
           </widget>
          </item>
         </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox_5">
+      <property name="title">
+       <string>Initial positions</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <item>
+        <widget class="QSpinBox" name="initX">
+         <property name="minimum">
+          <number>-100000</number>
+         </property>
+         <property name="maximum">
+          <number>100000</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="initY">
+         <property name="minimum">
+          <number>-99999</number>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="initZ">
+         <property name="minimum">
+          <number>-99999</number>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="initA">
+         <property name="minimum">
+          <number>-100000</number>
+         </property>
+         <property name="maximum">
+          <number>100000</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="reset">
+         <property name="text">
+          <string>reset at init</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
