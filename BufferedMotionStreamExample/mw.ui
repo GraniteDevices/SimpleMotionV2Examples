@@ -267,6 +267,13 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_7">
        <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>DC</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QSpinBox" name="initX">
          <property name="minimum">
           <number>-100000</number>
@@ -276,6 +283,13 @@
          </property>
          <property name="singleStep">
           <number>500</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>STEPPER</string>
          </property>
         </widget>
        </item>
@@ -293,6 +307,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>AC</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QSpinBox" name="initZ">
          <property name="minimum">
           <number>-99999</number>
@@ -302,6 +323,13 @@
          </property>
          <property name="singleStep">
           <number>500</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>LINEAR</string>
          </property>
         </widget>
        </item>
@@ -322,6 +350,16 @@
         <widget class="QCheckBox" name="reset">
          <property name="text">
           <string>reset at init</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="setInitPositionsConstantly">
+         <property name="text">
+          <string>set initial positions constantly when not running sequence</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>

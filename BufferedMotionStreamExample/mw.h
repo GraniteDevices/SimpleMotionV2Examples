@@ -43,6 +43,9 @@ private:
 
     double streamTime;
 
+    bool driveToZeroAndStop;
+    void abortMotion();
+
     bool busOpen, motionActive;
 
     smbus bushandle;

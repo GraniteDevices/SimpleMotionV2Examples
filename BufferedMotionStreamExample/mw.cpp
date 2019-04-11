@@ -21,6 +21,7 @@ MW::MW(QWidget *parent) :
     timer->start(20);//first fire after 20ms
 
     updateUIcontrols();
+    driveToZeroAndStop=false;
 }
 
 MW::~MW()
@@ -110,7 +111,7 @@ int i;
     updateUIcontrols();
 }
 
-void MW::on_abortMotion_clicked()
+void MW::abortMotion()
 {
     int i;
     for(i=0;i<ui->numOfAxis->value();i++)
@@ -124,6 +125,13 @@ void MW::on_abortMotion_clicked()
     motionActive=false;
 
     updateUIcontrols();
+}
+
+void MW::on_abortMotion_clicked()
+{
+    //abortMotion(); //default behavior. now replaced by drive to zero
+
+    driveToZeroAndStop=true;
 }
 
 void MW::on_clearFaults_clicked()
@@ -159,17 +167,23 @@ void MW::writeLog(QString msg)
 QList <double> MW::getNextTrajectoryCoordinates()
 {
     QList <double> coords;
+    double ampl=ui->setpointAmpl->value();
+    double freq=ui->setpointFreq->value();
 
     //increment time
     streamTime+=1.0/ui->samplerate->currentText().toDouble();
+
+    if(driveToZeroAndStop && fabsf(sin(2*M_PI*freq*streamTime))<0.03)
+    {
+        driveToZeroAndStop=false;
+        abortMotion();
+    }
 
     int i;
 
     //generate same sine setpoint for all axis
     for(i=0;i<maxAxis;i++)
     {
-        double ampl=ui->setpointAmpl->value();
-        double freq=ui->setpointFreq->value();
         coords.append(sin(2*M_PI*freq*streamTime)*ampl);
     }
 
@@ -235,7 +249,18 @@ void MW::feedDrives()
     int minimumBufferFreeBytes=axis[0].bufferLength - ui->maxBufferFillPercent->value()/100.0*axis[0].bufferLength;
 
     if(motionActive==false)
+    {
+        if(ui->setInitPositionsConstantly->isChecked())
+        {
+            smSetParameter(bushandle,1,SMP_ABSOLUTE_POS_TARGET,ui->initX->value());
+            smSetParameter(bushandle,2,SMP_ABSOLUTE_POS_TARGET,ui->initY->value());
+            smSetParameter(bushandle,3,SMP_ABSOLUTE_POS_TARGET,ui->initZ->value());
+            smSetParameter(bushandle,4,SMP_ABSOLUTE_POS_TARGET,ui->initA->value());
+        }
         return;
+    }
+    else
+        ui->setInitPositionsConstantly->setChecked(false);
 
     //get amount of free space in first axis buffer. we do this only for first axis because rest of axes should have equal
     //or more free space. doing so saves unnecessary SM bus transmissions.
