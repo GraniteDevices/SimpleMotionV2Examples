@@ -27,3 +27,6 @@ Makefile*
 .svn
 *~
 *.exe
+
+/BufferedMotionStreamExample/object_script*
+/build*
