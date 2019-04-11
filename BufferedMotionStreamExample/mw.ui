@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>485</width>
-    <height>866</height>
+    <height>898</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,6 +32,9 @@
          </item>
          <item>
           <widget class="QLineEdit" name="portName">
+           <property name="text">
+            <string>FTDI0</string>
+           </property>
            <property name="placeholderText">
             <string>Such as COM6 on Win or /dev/ttyUSB0 on Linux</string>
            </property>
@@ -101,7 +104,7 @@
                <number>500</number>
               </property>
               <property name="value">
-               <number>1000</number>
+               <number>70000</number>
               </property>
              </widget>
             </item>
@@ -119,6 +122,9 @@
               </property>
               <property name="maximum">
                <number>16</number>
+              </property>
+              <property name="value">
+               <number>4</number>
               </property>
              </widget>
             </item>
@@ -141,7 +147,7 @@
                <double>0.500000000000000</double>
               </property>
               <property name="value">
-               <double>0.500000000000000</double>
+               <double>0.150000000000000</double>
               </property>
              </widget>
             </item>
@@ -268,6 +274,9 @@
          <property name="maximum">
           <number>100000</number>
          </property>
+         <property name="singleStep">
+          <number>500</number>
+         </property>
         </widget>
        </item>
        <item>
@@ -277,6 +286,9 @@
          </property>
          <property name="maximum">
           <number>99999</number>
+         </property>
+         <property name="singleStep">
+          <number>500</number>
          </property>
         </widget>
        </item>
@@ -288,6 +300,9 @@
          <property name="maximum">
           <number>99999</number>
          </property>
+         <property name="singleStep">
+          <number>500</number>
+         </property>
         </widget>
        </item>
        <item>
@@ -297,6 +312,9 @@
          </property>
          <property name="maximum">
           <number>100000</number>
+         </property>
+         <property name="singleStep">
+          <number>500</number>
          </property>
         </widget>
        </item>
